@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>ShrimpTeach</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #BFDBFE, #C7D2FE);
+      color: #1E3A8A;
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+      background-color: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    select, input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #93C5FD;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #4F46E5;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .card {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-left: 10px;
+    }
+    .green { background-color: #10B981; }
+    .yellow { background-color: #FBBF24; }
+    .red { background-color: #EF4444; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      font-size: 14px;
+    }
+    th {
+      background-color: #BFDBFE;
+    }
+    label {
+      font-weight: bold;
+    }
+    .mediciones {
+      margin-top: 20px;
+    }
+    canvas {
+      margin-top: 20px;
+      background: white;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .tutorial {
+      background: #DBEAFE;
+      border-left: 4px solid #3B82F6;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .creditos {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      font-size: 14px;
+      color: #4B5563;
+      background-color: #DBEAFE;
+      border-top: 1px solid #93C5FD;
+    }
+    .leyenda {
+      margin-top: 10px;
+      padding: 10px;
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .leyenda div {
+      margin: 5px 0;
+    }
+    .leyenda span {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    .leyenda .green { background-color: #10B981; }
+    .leyenda .yellow { background-color: #FBBF24; }
+    .leyenda .red { background-color: #EF4444; }
+    .btn-borrar {
+      background-color: #EF4444;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ShrimpTeach 🐟</h1>
+    <p>Monitoreo individual para granjas de camarón</p>
+  </header>
+
+  <!-- Registro de granja -->
+  <div class="container">
+    <label for="nombre-granja">Nombre de tu granja:</label>
+    <input type="text" id="nombre-granja" placeholder="Ej: Granja San Miguel" oninput="guardarNombreGranje()" />
+    <p><strong>Granja seleccionada:</strong> <span id="mostrar-nombre">Sin registrar aún</span></p>
+  </div>
+
+  <!-- Selector de estanques -->
+  <div class="container">
+    <label for="estanque">Selecciona tu estanque:</label>
+    <select id="estanque"></select>
+
+    <!-- Nota importante -->
+    <div id="alerta-estanque" style="display:none;" class="tutorial" style="background:#FEF3C7;border-left:4px solid #F59E0B;">
+      ⚠️ Por favor, evita usar el Estanque 1 (E01) por ahora.<br>
+      Usa los estanques desde <strong>E02</strong> hasta <strong>E20</strong>.<br>
+      El Estanque 1 se encuentra en desarrollo técnico temporal.
+    </div>
+  </div>
+
+  <!-- Leyenda de colores -->
+  <div class="container leyenda">
+    <strong>Indicadores de estado:</strong>
+    <div><span class="red"></span>Riesgo alto – acción inmediata</div>
+    <div><span class="yellow"></span>En límite – monitorea</div>
+    <div><span class="green"></span>Óptimo – todo bajo control</div>
+  </div>
+
+  <!-- Datos actuales -->
+  <div class="container" id="params"></div>
+
+  <!-- Registrar nueva medición -->
+  <div class="container">
+    <h2>Registrar nueva medición</h2>
+    <input type="number" id="ph" placeholder="pH (ej: 8.2)" step="any" />
+    <input type="number" id="temperatura" placeholder="Temperatura (°C)" step="any" />
+    <input type="number" id="oxigeno" placeholder="Oxígeno (mg/L)" step="any" />
+    <input type="number" id="amonio" placeholder="Amonio (mg/L)" step="any" />
+    <input type="number" id="turbidez" placeholder="Turbidez (NTU)" step="any" />
+    <button onclick="registrarMedicion()">Guardar Medición</button>
+  </div>
+
+  <!-- Historial de mediciones -->
+  <div class="container">
+    <h2>Historial de Mediciones</h2>
+    <table id="historial-table">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>pH</th><th>Temp.</th><th>O₂</th><th>NH₄⁺</th><th>Turb.</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="historial-body"></tbody>
+    </table>
+    <button onclick="borrarUltimaMedicion()" style="background:#EF4444; color:white; padding:5px 10px; border-radius:6px;">🗑 Borrar Última Medición</button>
+  </div>
+
+  <!-- Registrar biometría -->
+  <div class="container">
+    <h2>Registrar Biometría</h2>
+    <input type="number" id="muestras" placeholder="Número de muestras" min="1" />
+    <input type="number" id="pesoTotal" placeholder="Peso total de muestra (g)" step="any" />
+    <input type="number" id="longitudPromedio" placeholder="Longitud promedio (cm)" step="any" />
+    <button onclick="registrarBiometria()">Registrar Biometría</button>
+  </div>
+
+  <!-- Historial de biometría -->
+  <div class="container">
+    <h2>Historial de Biometría</h2>
+    <table id="biometria-table">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Muestras</th><th>Peso Total (g)</th><th>Peso Promedio (g)</th><th>Aumento (g)</th><th>% Crecimiento</th><th>Longitud (cm)</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="biometria-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Gráfica de crecimiento -->
+  <canvas id="grafica-peso" width="600" height="200"></canvas>
+
+  <!-- Créditos -->
+  <div class="creditos">
+    Diseñado por: <strong>YKPT</strong> – ykpt@outlook.es<br>
+    Colaboración técnica: Equipo ShrimpTeach<br>
+    Desarrollado con ❤️ para el sector acuícola.
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+  <script>
+    const estanquesKey = 'shrimpteach_estanques';
+    const nombreGrandeKey = 'shrimpteach_granja';
+
+    function cargarEstanques() {
+      const saved = localStorage.getItem(estanquesKey);
+      return saved ? JSON.parse(saved) : Array.from({ length: 20 }, (_, i) => ({
+        id: `E${String(i + 1).padStart(2, "0")}`,
+        nombre: `Estanque ${i + 1}`,
+        datos: {
+          ph: 8.2,
+          temperatura: 29.5,
+          oxigeno: 4.8,
+          amonio: 0.08,
+          turbidez: 45,
+        },
+        historial: [],
+        biometria: []
+      }));
+    }
+
+    let estanques = cargarEstanques();
+    const selected = document.getElementById("estanque");
+    const params = document.getElementById("params");
+
+    // Cargar nombre de granja si existe
+    function cargarNombreGranje() {
+      const saved = localStorage.getItem(nombreGrandeKey);
+      if (saved) {
+        document.getElementById("nombre-granja").value = saved;
+        document.getElementById("mostrar-nombre").innerText = saved;
+      }
+    }
+
+    function guardarNombreGrande() {
+      const nombre = document.getElementById("nombre-granja").value.trim();
+      if (nombre === "") return;
+
+      localStorage.setItem(nombreGrandeKey, nombre);
+      document.getElementById("mostrar-nombre").innerText = nombre;
+    }
+
+    // Cargar selector de estanques
+    selected.innerHTML = estanques.map(e => `<option value="${e.id}">${e.nombre}</option>`).join("");
+    selected.value = "E02"; // Empieza desde E02
+    selected.onchange = () => {
+      const estanqueId = selected.value;
+      if (estanqueId === "E01") {
+        document.getElementById("alerta-estanque").style.display = "block";
+        document.getElementById("params").style.display = "none";
+        document.getElementById("historial-table").style.display = "none";
+        document.getElementById("biometria-table").style.display = "none";
+        document.getElementById("grafica-peso").style.display = "none";
+      } else {
+        document.getElementById("alerta-estanque").style.display = "none";
+        document.getElementById("params").style.display = "block";
+        document.getElementById("historial-table").style.display = "block";
+        document.getElementById("biometria-table").style.display = "block";
+        document.getElementById("grafica-peso").style.display = "block";
+        mostrarDatos(estanqueId);
+      }
+    };
+
+    // Mostrar parámetros actuales del estanque seleccionado
+    function getIndicator(value, param) {
+      if (param === 'ph') {
+        if (value >= 7.5 && value <= 8.5) return 'green';
+        else if ((value >= 7 && value < 7.5) || (value > 8.5 && value <= 9)) return 'yellow';
+        else return 'red';
+      }
+      if (param === 'temperatura') {
+        if (value >= 23 && value <= 27) return 'green';
+        else if ((value >= 15 && value < 23) || (value > 27 && value <= 31)) return 'yellow';
+        else return 'red';
+      }
+      if (param === 'oxigeno') {
+        if (value >= 5 && value <= 9) return 'green';
+        else if ((value >= 3 && value < 5) || (value > 9 && value <= 11)) return 'yellow';
+        else return 'red';
+      }
+      if (param === 'amonio') {
+        if (value <= 0.1) return 'green';
+        else if (value > 0.1 && value <= 0.5) return 'yellow';
+        else return 'red';
+      }
+      if (param === 'turbidez') {
+        if (value >= 20 && value <= 50) return 'green';
+        else if ((value >= 10 && value < 20) || (value > 50 && value <= 100)) return 'yellow';
+        else return 'red';
+      }
+      return 'gray';
+    }
+
+    function mostrarDatos(id) {
+      const estanque = estanques.find(e => e.id === id);
+      params.innerHTML = "";
+      Object.entries(estanque.datos).forEach(([key, val]) => {
+        params.innerHTML += `
+          <div class="card">
+            <label>${key.toUpperCase()}</label>
+            <input type="number" data-key="${key}" value="${val}" onchange="actualizarParametro('${id}', '${key}', this.value)">
+            <span class="indicator ${getIndicator(val, key)}"></span>
+          </div>`;
+      });
+
+      // Actualizar historial de mediciones
+      const historialTable = document.getElementById("historial-table");
+      const historialTbody = document.getElementById("historial-body");
+      historialTbody.innerHTML = "";
+
+      if (estanque.historial.length > 0) {
+        estanque.historial.forEach((medida, idx) => {
+          historialTbody.innerHTML += `
+            <tr>
+              <td>${medida.timestamp}</td>
+              <td>${medida.ph}</td>
+              <td>${medida.temperatura}</td>
+              <td>${medida.oxigeno}</td>
+              <td>${medida.amonio}</td>
+              <td>${medida.turbidez}</td>
+              <td>
+                <button class="btn-borrar" onclick="borrarMedicion('${id}', ${idx})">Borrar</button>
+              </td>
+            </tr>`;
+        });
+      } else {
+        historialTbody.innerHTML = "<tr><td colspan='7'>No hay mediciones aún</td></tr>";
+      }
+
+      // Actualizar historial de biometría
+      const tbody = document.getElementById("biometria-body");
+      tbody.innerHTML = "";
+      estanque.biometria.forEach((b, idx) => {
+        const anterior = estanque.biometria[idx - 1];
+        const pesoAnterior = anterior ? anterior.pesoPromedio : null;
+
+        const aumentoPeso = pesoAnterior !== null ? (b.pesoPromedio - pesoAnterior).toFixed(2) : "-";
+        const porcentaje = pesoAnterior !== null ? ((b.pesoPromedio / pesoAnterior - 1) * 100).toFixed(1) : "-";
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${b.fecha}</td>
+            <td>${b.muestras}</td>
+            <td>${b.pesoTotal} g</td>
+            <td>${b.pesoPromedio.toFixed(2)} g</td>
+            <td>${aumentoPeso !== "-" ? `${aumentoPeso} g` : "-"}</td>
+            <td>${porcentaje !== "-" ? `${porcentaje}%` : "-"}</td>
+            <td>${b.longitudPromedio} cm</td>
+            <td>
+              <button class="btn-borrar" onclick="borrarBiometria('${id}', ${idx})">Borrar</button>
+            </td>
+          </tr>`;
+      });
+
+      // Actualizar gráfica de peso
+      actualizarGraficaPeso(estanque.biometria);
+    }
+
+    function actualizarParametro(id, key, value) {
+      const estanque = estanques.find(e => e.id === id);
+      estanque.datos[key] = parseFloat(value);
+      guardarEstanques();
+      mostrarDatos(id); // Actualiza colores
+    }
+
+    function registrarMedicion() {
+      const estanque = estanques.find(e => e.id === selected.value);
+      const nuevaMedicion = {
+        timestamp: new Date().toLocaleDateString(),
+        ph: parseFloat(document.getElementById("ph").value),
+        temperatura: parseFloat(document.getElementById("temperatura").value),
+        oxigeno: parseFloat(document.getElementById("oxigeno").value),
+        amonio: parseFloat(document.getElementById("amonio").value),
+        turbidez: parseFloat(document.getElementById("turbidez").value)
+      };
+
+      if (!nuevaMedicion.ph || !nuevaMedicion.temperatura || !nuevaMedicion.oxigeno || !nuevaMedicion.amonio || !nuevaMedicion.turbidez) {
+        alert("Completa todos los campos.");
+        return;
+      }
+
+      estanque.historial.unshift(nuevaMedicion);
+      estanque.historial = estanque.historial.slice(0, 10); // Máximo 10 registros
+      estanque.datos = nuevaMedicion;
+
+      guardarEstanques();
+      mostrarDatos(selected.value);
+      limpiarFormulario();
+      alert("✅ Medición registrada correctamente");
+    }
+
+    function guardarEstanques() {
+      localStorage.setItem(estanquesKey, JSON.stringify(estanques));
+    }
+
+    function limpiarFormulario() {
+      document.getElementById("ph").value = "";
+      document.getElementById("temperatura").value = "";
+      document.getElementById("oxigeno").value = "";
+      document.getElementById("amonio").value = "";
+      document.getElementById("turbidez").value = "";
+    }
+
+    function borrarMedicion(id, index) {
+      if (confirm("¿Seguro que quieres borrar esta medición?")) {
+        const estanque = estanques.find(e => e.id === id);
+        estanque.historial.splice(index, 1);
+        guardarEstanques();
+        mostrarDatos(id);
+        alert("🗑 Medición eliminada");
+      }
+    }
+
+    function borrarBiometria(id, index) {
+      if (confirm("¿Seguro que deseas borrar este registro de biometría?")) {
+        const estanque = estanques.find(e => e.id === id);
+        estanque.biometria.splice(index, 1);
+        guardarEstanques();
+        mostrarDatos(id);
+        alert("🗑 Registro de biometría eliminado");
+      }
+    }
+
+    function borrarUltimaMedicion() {
+      const estanque = estanques.find(e => e.id === selected.value);
+      if (estanque.historial.length === 0) {
+        alert("No hay mediciones para borrar");
+        return;
+      }
+
+      if (confirm("¿Seguro que deseas borrar la última medición?")) {
+        estanque.historial.shift(); // Elimina la más reciente
+        estanque.datos = estanque.historial[0] || estanque.datos;
+        guardarEstanques();
+        mostrarDatos(selected.value);
+        alert("🗑 Última medición eliminada");
+      }
+    }
+
+    // Gráfica de evolución del peso
+    const graficaPesoCtx = document.getElementById('grafica-peso').getContext('2d');
+    let graficaPeso = null;
+
+    function actualizarGraficaPeso(datos) {
+      const labels = datos.map((_, i) => `Semana ${i + 1}`);
+      const pesos = datos.map(d => d.pesoPromedio);
+      const longitudes = datos.map(d => d.longitudPromedio);
+
+      if (graficaPeso) graficaPeso.destroy();
+
+      graficaPeso = new Chart(graficaPesoCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Peso Promedio (g)',
+            data: pesos,
+            borderColor: '#4F46E5',
+            backgroundColor: 'rgba(79, 75, 229, 0.2)',
+            tension: 0.3,
+            pointRadius: 4,
+            fill: true
+          }, {
+            label: 'Longitud (cm)',
+            data: longitudes,
+            borderColor: '#EC4899',
+            backgroundColor: 'rgba(236, 72, 153, 0.2)',
+            tension: 0.3,
+            pointRadius: 4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            title: { display: true, text: 'Evolución del Camarón' }
+          }
+        }
+      });
+    }
+
+    function registrarBiometria() {
+      const muestras = parseInt(document.getElementById("muestras").value);
+      const pesoTotal = parseFloat(document.getElementById("pesoTotal").value);
+      const longitud = parseFloat(document.getElementById("longitudPromedio").value);
+
+      if (!muestras || !pesoTotal || !longitud || muestras < 1) {
+        alert("Completa todos los campos correctamente.");
+        return;
+      }
+
+      const pesoPromedio = pesoTotal / muestras;
+      const fecha = new Date().toLocaleDateString();
+
+      const estanque = estanques.find(e => e.id === selected.value);
+      estanque.biometria.push({
+        muestras,
+        pesoTotal,
+        pesoPromedio,
+        longitudPromedio: longitud,
+        fecha
+      });
+
+      guardarEstanques();
+      mostrarDatos(selected.value);
+      document.getElementById("muestras").value = "";
+      document.getElementById("pesoTotal").value = "";
+      document.getElementById("longitudPromedio").value = "";
+      alert(`📈 Biometría registrada\nPeso promedio: ${pesoPromedio.toFixed(2)} g`);
+    }
+
+    // Iniciar con E02
+    selected.innerHTML = estanques.map(e => `<option value="${e.id}">${e.nombre}</option>`).join("");
+    selected.value = "E02";
+    cargarNombreGranje();
+    mostrarDatos("E02");
+  </script>
+</body>
+</html>
